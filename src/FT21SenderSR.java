@@ -1,7 +1,6 @@
 import java.io.File;
 import java.io.RandomAccessFile;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 import cnss.simulator.Node;
 import ft21.FT21AbstractSenderApplication;
@@ -45,9 +44,9 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //true if the first package (upload) was sent, false if not.
     private boolean firstSent = false;
 
-    //map of the times of when the packages were sent.
-    //The key is the number of the package and the object is the time.
-    private SortedMap<Integer, Integer> times;
+    //map of the packages that were sent.
+    //The key is the number of the package and the object a class with the time and the state of the package.
+    private SortedMap<Integer, WindowDataState> packets;
 
     private State state;
 
@@ -62,7 +61,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
         file = new File(args[0]);
         BlockSize = Integer.parseInt(args[1]);
         windowsize = Integer.parseInt(args[2]);
-        times = new TreeMap<>();
+        packets = new TreeMap<>();
         repeatedACK = false;
         negativeACK = -1;
         lastACKReceived = -1;
@@ -78,10 +77,9 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
         boolean timeout = timer(now);
 
-        boolean canSend = ((times.size()<windowsize) && (state != State.FINISHED) && (nextPacketSeqN<=lastPacketSeqN));
+        boolean canSend = ((packets.size()<windowsize) && (state != State.FINISHED) && (nextPacketSeqN<=lastPacketSeqN));
 
         receivedNegativeACK();
-
 
         sendFirst(now);
 
@@ -91,7 +89,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             changeState();
             if (timeout) {
                 sendNextPacket(now);
-                nextPacketSeqN++;
+                nextPacketSeqN = packets.lastKey()+1;
                 repeatedACK = false;
             } else if (!repeatedACK) {
                 sendNextPacket(now);
@@ -145,7 +143,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     private void receivedNegativeACK(){
         if(negativeACK>0){
             nextPacketSeqN = negativeACK;
-            times.clear();
+            packets.clear();
             negativeACK = -1;
         }
     }
@@ -153,22 +151,29 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //checks if the first package, that was sent and didn't receive yet its ACK, has past the timeout value.
     //By comparing the time now with the time at it was sent
     private boolean timer(int now){
-        boolean timeout=false;
-        if(!times.isEmpty()) {
-            int first = times.firstKey();
-            if ((now - times.get(first)) > TIMEOUT) {
-                if(nextPacketSeqN== lastPacketSeqN+1){
-                    lastSent =false;
+        boolean hasTimeOut= false;
+        if(!packets.isEmpty()) {
+            Set<Integer> listKeys = packets.keySet();
+
+            Iterator<Integer> it = listKeys.iterator();
+
+            while (it.hasNext()&& !hasTimeOut) {
+                int key = it.next();
+                if ((now - packets.get(key).getTime()) > TIMEOUT) {
+                    if (nextPacketSeqN == lastPacketSeqN + 1) {
+                        lastSent = false;
+                    }
+                    if (lastACKReceived == -1) {
+                        firstSent = false;
+                    }
+                    nextPacketSeqN = key;
+                    hasTimeOut = true;
+                    packets.get(key).changeStatus();
+                    packets.get(key).setTime(now);
                 }
-                if(lastACKReceived ==-1){
-                    firstSent =false;
-                }
-                nextPacketSeqN = lastACKReceived + 1;
-                times.clear();
-                timeout=true;
             }
         }
-        return timeout;
+        return hasTimeOut;
     }
 
     // sends the package and adds the time it was sent to the map of packages that didn't receive their ack
@@ -185,7 +190,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
                 break;
             case FINISHED:
         }
-        times.put(nextPacketSeqN, now);
+        packets.put(nextPacketSeqN, new WindowDataState(now));
     }
 
 
@@ -201,7 +206,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
                 negativeACK = ack.cSeqN * (-1) ;
             }else {
                 lastACKReceived = ack.cSeqN;
-                if(!times.isEmpty()){
+                if(!packets.isEmpty()){
                     deleteAckReceived();
                 }
             }
@@ -221,7 +226,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //deletes from the map the key with the same value as the ACK
     private void deleteAckReceived(){
         for(int i = 0; i <= lastACKReceived; i++){
-            times.remove(i);
+            packets.remove(i);
         }
     }
 

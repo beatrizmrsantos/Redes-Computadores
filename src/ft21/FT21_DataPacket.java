@@ -5,8 +5,8 @@ public class FT21_DataPacket extends FT21Packet {
 	public final byte[] data;
 	public final int optional_data_field;
 	
-	public FT21_DataPacket(int seqN, byte[] data) {
-		this(seqN, data, data.length);
+	public FT21_DataPacket(int seqN, byte[] data , int optional_data_field ) {
+		this(seqN, data, data.length, optional_data_field);
 	}
 
 	public FT21_DataPacket(int seqN, byte[] data, int datalen,  int optional_data_field) {

@@ -100,7 +100,7 @@ public class FT21SenderSW extends FT21AbstractSenderApplication {
 			raf.seek(BlockSize * (seqN - 1));
 			byte[] data = new byte[BlockSize];
 			int nbytes = raf.read(data);
-			return new FT21_DataPacket(seqN, data, nbytes);
+			return new FT21_DataPacket(seqN, data, nbytes,);
 		} catch (Exception x) {
 			throw new Error("Fatal Error: " + x.getMessage());
 		}

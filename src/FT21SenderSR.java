@@ -14,7 +14,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
     private static final int TIMEOUT = 1000;
 
-    static int RECEIVER = 1;
+    static int RECEIVER = 4;
 
     enum State {
         BEGINNING, UPLOADING, FINISHING, FINISHED
@@ -175,13 +175,13 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     private void sendNextPacket(int now) {
         switch (state) {
             case BEGINNING:
-                super.sendPacket(now, RECEIVER, new FT21_UploadPacket(file.getName()));
+                super.sendPacket(now, RECEIVER, new FT21_UploadPacket(file.getName(),nextPacketSeqN));
                 break;
             case UPLOADING:
                 super.sendPacket(now, RECEIVER, readDataPacket(file, nextPacketSeqN));
                 break;
             case FINISHING:
-                super.sendPacket(now, RECEIVER, new FT21_FinPacket(nextPacketSeqN));
+                super.sendPacket(now, RECEIVER, new FT21_FinPacket(nextPacketSeqN, nextPacketSeqN));
                 break;
             case FINISHED:
         }
@@ -233,7 +233,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             raf.seek(BlockSize * (seqN - 1));
             byte[] data = new byte[BlockSize];
             int nbytes = raf.read(data);
-            return new FT21_DataPacket(seqN, data, nbytes);
+            return new FT21_DataPacket(seqN, data, nbytes, seqN);
         } catch (Exception x) {
             throw new Error("Fatal Error: " + x.getMessage());
         }

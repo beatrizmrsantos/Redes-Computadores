@@ -79,7 +79,9 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
         boolean canSend = ((packets.size()<windowsize) && (state != State.FINISHED) && (nextPacketSeqN<=lastPacketSeqN));
 
-        receivedNegativeACK();
+       if(!timeout){
+           receivedNegativeACK();
+       }
 
         sendFirst(now);
 
@@ -143,7 +145,6 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     private void receivedNegativeACK(){
         if(negativeACK>0){
             nextPacketSeqN = negativeACK;
-            packets.clear();
             negativeACK = -1;
         }
     }
@@ -168,8 +169,8 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
                     }
                     nextPacketSeqN = key;
                     hasTimeOut = true;
-                    packets.get(key).changeStatus();
-                    packets.get(key).setTime(now);
+                    //packets.get(key).changeStatus();
+                   // packets.get(key).setTime(now);
                 }
             }
         }
@@ -190,7 +191,12 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
                 break;
             case FINISHED:
         }
-        packets.put(nextPacketSeqN, new WindowDataState(now));
+
+        if(packets.get(nextPacketSeqN)==null) {
+            packets.put(nextPacketSeqN, new WindowDataState(now));
+        }else{
+            packets.get(nextPacketSeqN).setTime(now);
+        }
     }
 
 

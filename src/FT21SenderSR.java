@@ -207,7 +207,11 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             }else {
                 lastACKReceived = ack.cSeqN;
                 if(!packets.isEmpty()){
-                    deleteAckReceived();
+                    if(ack.optional_data_field==ack.cSeqN) {
+                        deleteAckReceived();
+                    }else{
+                        packets.remove(ack.optional_data_field);
+                    }
                 }
             }
         }

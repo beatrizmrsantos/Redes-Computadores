@@ -89,12 +89,10 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
         if(canSend && lastACKReceived >=0) {
             changeState();
+            sendNextPacket(now);
             if (timeout) {
-                sendNextPacket(now);
                 nextPacketSeqN = packets.lastKey()+1;
-                repeatedACK = false;
-            } else if (!repeatedACK) {
-                sendNextPacket(now);
+            } else {
                 nextPacketSeqN++;
             }
         }
@@ -205,9 +203,9 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //Also, it can identify if the ack receives was negative
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
-        if(lastACKReceived == ack.cSeqN){
+       /* if(lastACKReceived == ack.cSeqN){
             repeatedACK = true;
-        } else {
+        } else {*/
             if(ack.cSeqN<0){
                 negativeACK = ack.cSeqN * (-1) ;
             }else {
@@ -220,7 +218,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
                     }
                 }
             }
-        }
+       // }
 
         //if the ack received is the fin then state changes to finishing
         if(ack.cSeqN == lastPacketSeqN + 1){

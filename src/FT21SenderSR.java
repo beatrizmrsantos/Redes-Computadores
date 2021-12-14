@@ -13,7 +13,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
     private static final int TIMEOUT = 1000;
 
-    static int RECEIVER = 4;
+    static int RECEIVER = 1;
 
     enum State {
         BEGINNING, UPLOADING, FINISHING, FINISHED
@@ -211,10 +211,10 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             }else {
                 lastACKReceived = ack.cSeqN;
                 if(!packets.isEmpty()){
-                    if(ack.optional_data_field==ack.cSeqN) {
+                    if(ack.optional_data==ack.cSeqN) {
                         deleteAckReceived();
                     }else{
-                        packets.remove(ack.optional_data_field);
+                        packets.remove(ack.optional_data);
                     }
                 }
             }

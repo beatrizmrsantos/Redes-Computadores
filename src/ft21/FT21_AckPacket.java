@@ -12,7 +12,7 @@ public class FT21_AckPacket extends FT21Packet {
 		int seqN = super.getInt();
 		this.cSeqN = Math.abs( seqN );
 		this.outsideWindow = seqN < 0;
-		byte b = super.getByte();
+		//byte b = super.getByte();
 		//bb = super.getBytes(b);
 		this.optional_data = super.getInt();
 

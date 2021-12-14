@@ -29,6 +29,8 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //size of window.
     private int windowsize;
 
+    private int lastPacketReceived;
+
     //last ack received.
     private int lastACKReceived;
 
@@ -65,6 +67,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
         repeatedACK = false;
         negativeACK = -1;
         lastACKReceived = -1;
+        lastPacketReceived=-1;
 
         state = State.BEGINNING;
         lastPacketSeqN = (int) Math.ceil(file.length() / (double) BlockSize);
@@ -79,6 +82,10 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
         boolean canSend = ((packets.size()<windowsize) && (state != State.FINISHED) && (nextPacketSeqN<=lastPacketSeqN));
 
+        if(packets.get(nextPacketSeqN)!=null && timeout){
+            canSend=true;
+        }
+
        if(!timeout){
            receivedNegativeACK();
        }
@@ -89,10 +96,12 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
         if(canSend && lastACKReceived >=0) {
             changeState();
-            sendNextPacket(now);
             if (timeout) {
-                nextPacketSeqN = packets.lastKey()+1;
-            } else {
+                sendNextPacket(now);
+                nextPacketSeqN = lastPacketReceived+1;
+                repeatedACK=false;
+            } else if (!repeatedACK) {
+                sendNextPacket(now);
                 nextPacketSeqN++;
             }
         }
@@ -203,13 +212,16 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //Also, it can identify if the ack receives was negative
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
-       /* if(lastACKReceived == ack.cSeqN){
+       if(lastACKReceived == ack.cSeqN){
             repeatedACK = true;
-        } else {*/
+            lastPacketReceived=ack.optional_data;
+            packets.remove(ack.optional_data);
+        } else {
             if(ack.cSeqN<0){
                 negativeACK = ack.cSeqN * (-1) ;
             }else {
                 lastACKReceived = ack.cSeqN;
+                lastPacketReceived=ack.optional_data;
                 if(!packets.isEmpty()){
                     if(ack.optional_data==ack.cSeqN) {
                         deleteAckReceived();
@@ -218,7 +230,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
                     }
                 }
             }
-       // }
+        }
 
         //if the ack received is the fin then state changes to finishing
         if(ack.cSeqN == lastPacketSeqN + 1){

@@ -212,22 +212,22 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //Also, it can identify if the ack receives was negative
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
-       if(lastACKReceived == ack.cSeqN){
+        deleteAckReceived(ack.cSeqN);
+
+        if(lastACKReceived == ack.cSeqN){
             repeatedACK = true;
-            lastPacketReceived=ack.optional_data;
+            updateLasts(ack.optional_data, ack.cSeqN);
+            //lastPacketReceived=ack.optional_data;
             packets.remove(ack.optional_data);
         } else {
-            if(ack.cSeqN<0){
-                negativeACK = ack.cSeqN * (-1) ;
-            }else {
-                lastACKReceived = ack.cSeqN;
-                lastPacketReceived=ack.optional_data;
-                if(!packets.isEmpty()){
-                    if(ack.optional_data==ack.cSeqN) {
-                        deleteAckReceived();
-                    }else{
-                        packets.remove(ack.optional_data);
-                    }
+            if(ack.cSeqN<0) {
+                negativeACK = ack.optional_data;
+            }else{
+                updateLasts(ack.optional_data, ack.cSeqN);
+                //lastACKReceived = ack.cSeqN;
+                //lastPacketReceived=ack.optional_data;
+                if(ack.optional_data!=ack.cSeqN) {
+                    packets.remove(ack.optional_data);
                 }
             }
         }
@@ -243,11 +243,20 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
     }
 
+    private void updateLasts(int ackOptional, int ackS){
+        if(lastPacketReceived < ackOptional) lastPacketReceived = ackOptional;
+
+        if(lastACKReceived < ackS) lastACKReceived = ackS;
+    }
+
     //deletes from the map the key with the same value as the ACK
-    private void deleteAckReceived(){
-        for(int i = 0; i <= lastACKReceived; i++){
-            packets.remove(i);
+    private void deleteAckReceived(int n){
+        if(!packets.isEmpty()) {
+            for (int i = 0; i <= n; i++) {
+                packets.remove(i);
+            }
         }
+
     }
 
     private FT21_DataPacket readDataPacket(File file, int seqN) {

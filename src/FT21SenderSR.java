@@ -29,7 +29,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //size of window.
     private int windowsize;
 
-    private int lastPacketReceived;
+    private int lastPacketSent;
 
     //last ack received.
     private int lastACKReceived;
@@ -67,7 +67,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
         repeatedACK = false;
         negativeACK = -1;
         lastACKReceived = -1;
-        lastPacketReceived=-1;
+        lastPacketSent=-1;
 
         state = State.BEGINNING;
         lastPacketSeqN = (int) Math.ceil(file.length() / (double) BlockSize);
@@ -98,7 +98,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             changeState();
             if (timeout) {
                 sendNextPacket(now);
-                nextPacketSeqN = lastPacketReceived+1;
+                nextPacketSeqN = lastPacketSent+1;
                 repeatedACK=false;
             } else if (!repeatedACK) {
                 sendNextPacket(now);
@@ -200,6 +200,9 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
         }
 
         if(packets.get(nextPacketSeqN)==null) {
+            if(lastPacketSent<nextPacketSeqN){
+                lastPacketSent=nextPacketSeqN;
+            }
             packets.put(nextPacketSeqN, new WindowDataState(now));
         }else{
             packets.get(nextPacketSeqN).setTime(now);
@@ -220,7 +223,8 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             //lastPacketReceived=ack.optional_data;
             packets.remove(ack.optional_data);
         } else {
-            if(ack.cSeqN<0) {
+            repeatedACK = false;
+            if(ack.cSeqN<0 && ((ack.cSeqN*(-1))<ack.optional_data)) {
                 negativeACK = ack.optional_data;
             }else{
                 updateLasts(ack.optional_data, ack.cSeqN);
@@ -244,7 +248,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     }
 
     private void updateLasts(int ackOptional, int ackS){
-        if(lastPacketReceived < ackOptional) lastPacketReceived = ackOptional;
+       // if(lastPacketReceived < ackOptional) lastPacketReceived = ackOptional;
 
         if(lastACKReceived < ackS) lastACKReceived = ackS;
     }

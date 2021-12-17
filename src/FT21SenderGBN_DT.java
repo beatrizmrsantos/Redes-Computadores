@@ -213,7 +213,7 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
             sum+= rtts.get(i);
         }
         int average = sum / rtts.size();
-        timeout = average + (average/4);
+        timeout = average + (average/2);
 
     }
 

@@ -12,7 +12,6 @@ import ft21.FT21_UploadPacket;
 
 public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
 
-    private static final int TIMEOUT = 1000;
 
     static int RECEIVER = 1;
 
@@ -22,10 +21,19 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
 
     static int DEFAULT_TIMEOUT = 1000;
 
+    //average RTT
+    private int timeout;
+
     private File file;
     private RandomAccessFile raf;
     private int BlockSize;
     private int nextPacketSeqN, lastPacketSeqN;
+
+    //sum of the RTT of the packages received
+    private int sumRtt;
+
+    //number of packages received
+    private int countRtt;
 
     //size of window.
     private int windowsize;
@@ -66,6 +74,9 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
         negativeACK = -1;
         lastACKReceived = -1;
         lastPacketSent=-1;
+        timeout= DEFAULT_TIMEOUT;
+        sumRtt=0;
+        countRtt=0;
 
         state = State.BEGINNING;
         lastPacketSeqN = (int) Math.ceil(file.length() / (double) BlockSize);
@@ -165,7 +176,7 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
             while (it.hasNext()&& !hasTimeOut) {
                 int key = it.next();
                 WindowDataState p = packets.get(key);
-                if ((now - p.getTime()) > TIMEOUT && !p.getState()) {
+                if ((now - p.getTime()) > timeout && !p.getState()) {
                     if (nextPacketSeqN == lastPacketSeqN + 1) {
                         lastSent = false;
                     }
@@ -214,7 +225,7 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
         deleteAckReceived(ack.cSeqN);
-
+        calculateRTT(now,ack.optional_dataTime);
         if(ack.optional_dataSEQ > ack.cSeqN) {
             if (ack.outsideWindow) {
                 negativeACK = ack.optional_dataSEQ;
@@ -237,6 +248,16 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
                 state = State.FINISHED;
             }
         }
+
+    }
+
+    //calculates the average RTT of the packages already received with some margin
+    private void calculateRTT(int now,int time){
+        int rtt = (now - time);
+        sumRtt += rtt;
+        countRtt++;
+        int average = sumRtt / countRtt;
+        timeout = average + (average/2);
 
     }
 

@@ -1,7 +1,6 @@
 
 import java.io.File;
 import java.io.RandomAccessFile;
-import java.util.LinkedList;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -22,6 +21,7 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
 
     static int DEFAULT_TIMEOUT = 1000;
 
+    //average RTT
     private int timeout;
 
     private File file;
@@ -29,8 +29,10 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     private int BlockSize;
     private int nextPacketSeqN, lastPacketSeqN;
 
-
+    //sum of the RTT of the packages received
     private int sumRtt;
+
+    //number of packages received
     private int countRtt;
 
     //size of window.
@@ -209,6 +211,7 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
 
     }
 
+    //calculates the average RTT of the packages already received with some margin
     private void calculateRTT(int now,int time){
         int rtt = (now - time);
         sumRtt += rtt;

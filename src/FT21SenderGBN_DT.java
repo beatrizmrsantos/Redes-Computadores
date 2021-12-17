@@ -29,6 +29,10 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     private int BlockSize;
     private int nextPacketSeqN, lastPacketSeqN;
 
+
+    private int sumRtt;
+    private int countRtt;
+
     //size of window.
     private int windowsize;
 
@@ -48,8 +52,6 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     //The key is the number of the package and the object is the time.
     private SortedMap<Integer, Integer> times;
 
-    private LinkedList<Integer> rtts;
-
     private State state;
 
     public FT21SenderGBN_DT() {
@@ -64,10 +66,11 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
         BlockSize = Integer.parseInt(args[1]);
         windowsize = Integer.parseInt(args[2]);
         times = new TreeMap<>();
-        rtts = new LinkedList<>();
         repeatedACK = false;
         lastACKReceived = -1;
         timeout= DEFAULT_TIMEOUT;
+        sumRtt=0;
+        countRtt=0;
 
         state = State.BEGINNING;
         lastPacketSeqN = (int) Math.ceil(file.length() / (double) BlockSize);
@@ -207,12 +210,10 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     }
 
     private void calculateRTT(int now,int time){
-        rtts.add(now - time);
-        int sum = 0;
-        for(int i = 0; i< rtts.size();i++){
-            sum+= rtts.get(i);
-        }
-        int average = sum / rtts.size();
+        int rtt = (now - time);
+        sumRtt += rtt;
+        countRtt++;
+        int average = sumRtt / countRtt;
         timeout = average + (average/2);
 
     }

@@ -215,13 +215,15 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
         deleteAckReceived(ack.cSeqN);
 
-        if(ack.optional_data> ack.cSeqN) {
-            if (ack.outsideWindow && (ack.cSeqN < ack.optional_data)) {
+        if(ack.optional_data > ack.cSeqN) {
+            if (ack.outsideWindow) {
                 negativeACK = ack.optional_data;
             } else {
                 packets.get(ack.optional_data).received();
                 update(ack.cSeqN);
             }
+        }else{
+            update(ack.cSeqN);
         }
 
 
@@ -241,7 +243,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //update the last ack receive if is superior to the one on the variable.
     //update the map of packets waiting to receive their ack
     private void update(int ackS){
-        if(lastACKReceived < ackS) lastACKReceived = ackS;
+        if(lastACKReceived <= ackS) lastACKReceived = ackS;
     }
 
 

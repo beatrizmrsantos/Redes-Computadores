@@ -48,7 +48,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     private boolean firstSent = false;
 
     //map of the packages that were sent.
-    //The key is the number of the package and the object a class with the time and the state of the package.
+    //The key is the number of the package and the object is his time.
     private SortedMap<Integer, Integer> packets;
 
     private State state;

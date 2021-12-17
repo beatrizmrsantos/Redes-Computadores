@@ -220,7 +220,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             update(ack.cSeqN, ack.optional_data);
         } else {
             repeatedACK = false;
-            if(ack.cSeqN<0 && ((ack.cSeqN*(-1))<ack.optional_data)) {
+            if(ack.outsideWindow && (ack.cSeqN<ack.optional_data)) {
                 negativeACK = ack.optional_data;
             }else{
                 update(ack.cSeqN, ack.optional_data);

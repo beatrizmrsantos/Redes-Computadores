@@ -184,13 +184,13 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
     private void sendNextPacket(int now) {
         switch (state) {
             case BEGINNING:
-                super.sendPacket(now, RECEIVER, new FT21_UploadPacket(file.getName(),nextPacketSeqN));
+                super.sendPacket(now, RECEIVER, new FT21_UploadPacket(file.getName(),nextPacketSeqN, now));
                 break;
             case UPLOADING:
-                super.sendPacket(now, RECEIVER, readDataPacket(file, nextPacketSeqN));
+                super.sendPacket(now, RECEIVER, readDataPacket(file, nextPacketSeqN, now));
                 break;
             case FINISHING:
-                super.sendPacket(now, RECEIVER, new FT21_FinPacket(nextPacketSeqN, nextPacketSeqN));
+                super.sendPacket(now, RECEIVER, new FT21_FinPacket(nextPacketSeqN, nextPacketSeqN, now));
                 break;
             case FINISHED:
         }
@@ -215,11 +215,11 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
         deleteAckReceived(ack.cSeqN);
 
-        if(ack.optional_data > ack.cSeqN) {
+        if(ack.optional_dataSEQ > ack.cSeqN) {
             if (ack.outsideWindow) {
-                negativeACK = ack.optional_data;
+                negativeACK = ack.optional_dataSEQ;
             } else {
-                packets.get(ack.optional_data).received();
+                packets.get(ack.optional_dataSEQ).received();
                 update(ack.cSeqN);
             }
         }else{
@@ -257,7 +257,7 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
 
     }
 
-    private FT21_DataPacket readDataPacket(File file, int seqN) {
+    private FT21_DataPacket readDataPacket(File file, int seqN, int now) {
         try {
             if (raf == null)
                 raf = new RandomAccessFile(file, "r");
@@ -265,7 +265,7 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
             raf.seek(BlockSize * (seqN - 1));
             byte[] data = new byte[BlockSize];
             int nbytes = raf.read(data);
-            return new FT21_DataPacket(seqN, data, nbytes, seqN);
+            return new FT21_DataPacket(seqN, data, nbytes, seqN, now);
         } catch (Exception x) {
             throw new Error("Fatal Error: " + x.getMessage());
         }

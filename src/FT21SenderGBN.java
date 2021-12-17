@@ -34,9 +34,6 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
     //last ack received.
     private int lastACKReceived;
 
-    //value of the negative ack received.
-    private int negativeACK;
-
     //true if received repeated acks, false if not.
     private boolean repeatedACK;
 
@@ -65,7 +62,6 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
         windowsize = Integer.parseInt(args[2]);
         times = new TreeMap<>();
         repeatedACK = false;
-        negativeACK = -1;
         lastACKReceived = -1;
 
         state = State.BEGINNING;
@@ -80,9 +76,6 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
         boolean timeout = timer(now);
 
         boolean canSend = ((times.size()<windowsize) && (state != State.FINISHED) && (nextPacketSeqN<=lastPacketSeqN));
-
-        receivedNegativeACK();
-
 
         sendFirst(now);
 
@@ -142,15 +135,6 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
 
     }
 
-    //the package that was received with negative ack is the next to be sent
-    private void receivedNegativeACK(){
-        if(negativeACK>0){
-            nextPacketSeqN = negativeACK;
-            times.clear();
-            negativeACK = -1;
-        }
-    }
-
     //checks if the first package, that was sent and didn't receive yet its ACK, has past the timeout value.
     //By comparing the time now with the time at it was sent
     private boolean timer(int now){
@@ -176,13 +160,13 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
     private void sendNextPacket(int now) {
         switch (state) {
             case BEGINNING:
-                super.sendPacket(now, RECEIVER, new FT21_UploadPacket(file.getName(), nextPacketSeqN));
+                super.sendPacket(now, RECEIVER, new FT21_UploadPacket(file.getName(), nextPacketSeqN, now));
                 break;
             case UPLOADING:
-                super.sendPacket(now, RECEIVER, readDataPacket(file, nextPacketSeqN));
+                super.sendPacket(now, RECEIVER, readDataPacket(file, nextPacketSeqN, now));
                 break;
             case FINISHING:
-                super.sendPacket(now, RECEIVER, new FT21_FinPacket(nextPacketSeqN, nextPacketSeqN));
+                super.sendPacket(now, RECEIVER, new FT21_FinPacket(nextPacketSeqN, nextPacketSeqN, now));
                 break;
             case FINISHED:
         }
@@ -198,15 +182,12 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
         if(lastACKReceived == ack.cSeqN){
             repeatedACK = true;
         } else {
-            if(ack.cSeqN<0){
-                negativeACK = ack.cSeqN * (-1) ;
-            }else {
-                lastACKReceived = ack.cSeqN;
-                if(!times.isEmpty()){
-                    deleteAckReceived();
-                }
+            lastACKReceived = ack.cSeqN;
+            if(!times.isEmpty()){
+                deleteAckReceived();
             }
         }
+
 
         //if the ack received is the fin then state changes to finishing
         if(ack.cSeqN == lastPacketSeqN + 1){
@@ -226,7 +207,7 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
         }
    }
 
-    private FT21_DataPacket readDataPacket(File file, int seqN) {
+    private FT21_DataPacket readDataPacket(File file, int seqN, int now) {
         try {
             if (raf == null)
                 raf = new RandomAccessFile(file, "r");
@@ -234,7 +215,7 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
             raf.seek(BlockSize * (seqN - 1));
             byte[] data = new byte[BlockSize];
             int nbytes = raf.read(data);
-            return new FT21_DataPacket(seqN, data, nbytes);
+            return new FT21_DataPacket(seqN, data, nbytes, seqN, now);
         } catch (Exception x) {
             throw new Error("Fatal Error: " + x.getMessage());
         }

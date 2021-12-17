@@ -182,6 +182,7 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
         if(lastACKReceived == ack.cSeqN){
             repeatedACK = true;
         } else {
+            repeatedACK = false;
             lastACKReceived = ack.cSeqN;
             if(!times.isEmpty()){
                 deleteAckReceived();

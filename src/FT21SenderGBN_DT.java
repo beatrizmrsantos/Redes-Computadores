@@ -35,9 +35,6 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     //last ack received.
     private int lastACKReceived;
 
-    //value of the negative ack received.
-    private int negativeACK;
-
     //true if received repeated acks, false if not.
     private boolean repeatedACK;
 
@@ -69,7 +66,6 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
         times = new TreeMap<>();
         rtts = new LinkedList<>();
         repeatedACK = false;
-        negativeACK = -1;
         lastACKReceived = -1;
         timeout= DEFAULT_TIMEOUT;
 
@@ -85,8 +81,6 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
         boolean timeout = timer(now);
 
         boolean canSend = ((times.size()<windowsize) && (state != State.FINISHED) && (nextPacketSeqN<=lastPacketSeqN));
-
-        receivedNegativeACK();
 
         sendFirst(now);
 
@@ -146,15 +140,6 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
 
     }
 
-    //the package that was received with negative ack is the next to be sent
-    private void receivedNegativeACK(){
-        if(negativeACK>0){
-            nextPacketSeqN = negativeACK;
-            times.clear();
-            negativeACK = -1;
-        }
-    }
-
     //checks if the first package, that was sent and didn't receive yet its ACK, has past the timeout value.
     //By comparing the time now with the time at it was sent
     private boolean timer(int now){
@@ -203,13 +188,10 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
         if(lastACKReceived == ack.cSeqN){
             repeatedACK = true;
         } else {
-            if(ack.cSeqN<0){
-                negativeACK = ack.cSeqN * (-1) ;
-            }else {
-                lastACKReceived = ack.cSeqN;
-                if(!times.isEmpty()){
-                    deleteAckReceived();
-                }
+            repeatedACK = false;
+            lastACKReceived = ack.cSeqN;
+            if(!times.isEmpty()){
+                deleteAckReceived();
             }
         }
 
@@ -230,7 +212,8 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
         for(int i = 0; i< rtts.size();i++){
             sum+= rtts.get(i);
         }
-        timeout = sum / rtts.size();
+        int average = sum / rtts.size();
+        timeout = average + (average/4);
 
     }
 

@@ -9,6 +9,7 @@ import ft21.FT21_DataPacket;
 import ft21.FT21_FinPacket;
 import ft21.FT21_UploadPacket;
 
+
 public class FT21SenderSR extends FT21AbstractSenderApplication {
 
     private static final int TIMEOUT = 1000;
@@ -38,9 +39,6 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     //value of the negative ack received.
     private int negativeACK;
 
-    //true if received repeated acks, false if not.
-    private boolean repeatedACK;
-
     // true if the last package (fin) was sent, false if not.
     private boolean lastSent = false;
 
@@ -49,7 +47,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
     //map of the packages that were sent.
     //The key is the number of the package and the object is his time.
-    private SortedMap<Integer, Integer> packets;
+    private SortedMap<Integer, WindowDataState> packets;
 
     private State state;
 
@@ -65,7 +63,6 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
         BlockSize = Integer.parseInt(args[1]);
         windowsize = Integer.parseInt(args[2]);
         packets = new TreeMap<>();
-        repeatedACK = false;
         negativeACK = -1;
         lastACKReceived = -1;
         lastPacketSent=-1;
@@ -97,12 +94,10 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
         if(canSend && lastACKReceived >=0) {
             changeState();
+            sendNextPacket(now);
             if (timeout) {
-                sendNextPacket(now);
                 nextPacketSeqN = lastPacketSent+1;
-                repeatedACK=false;
-            } else if (!repeatedACK) {
-                sendNextPacket(now);
+            } else {
                 nextPacketSeqN++;
             }
         }
@@ -169,7 +164,8 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
             while (it.hasNext()&& !hasTimeOut) {
                 int key = it.next();
-                if ((now - packets.get(key)) > TIMEOUT) {
+                WindowDataState p = packets.get(key);
+                if ((now - p.getTime()) > TIMEOUT && !p.getState()) {
                     if (nextPacketSeqN == lastPacketSeqN + 1) {
                         lastSent = false;
                     }
@@ -200,10 +196,14 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
         }
 
 
-        if(lastPacketSent<nextPacketSeqN){
-            lastPacketSent=nextPacketSeqN;
+        if(packets.get(nextPacketSeqN)==null) {
+            if(lastPacketSent<nextPacketSeqN){
+                lastPacketSent=nextPacketSeqN;
+            }
+            packets.put(nextPacketSeqN, new WindowDataState(now));
+        }else{
+            packets.get(nextPacketSeqN).setTime(now);
         }
-        packets.put(nextPacketSeqN, now);
 
     }
 
@@ -215,17 +215,17 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
         deleteAckReceived(ack.cSeqN);
 
-        if(lastACKReceived == ack.cSeqN){
-            repeatedACK = true;
-            update(ack.cSeqN, ack.optional_data);
-        } else {
-            repeatedACK = false;
-            if(ack.outsideWindow && (ack.cSeqN<ack.optional_data)) {
+        if(ack.optional_data> ack.cSeqN) {
+            if (ack.outsideWindow && (ack.cSeqN < ack.optional_data)) {
                 negativeACK = ack.optional_data;
-            }else{
-                update(ack.cSeqN, ack.optional_data);
+            } else {
+                packets.get(ack.optional_data).received();
+                update(ack.cSeqN);
             }
         }
+
+
+
 
         //if the ack received is the fin then state changes to finishing
         if(ack.cSeqN == lastPacketSeqN + 1){
@@ -240,9 +240,8 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
     //update the last ack receive if is superior to the one on the variable.
     //update the map of packets waiting to receive their ack
-    private void update(int ackS, int ackOptional){
+    private void update(int ackS){
         if(lastACKReceived < ackS) lastACKReceived = ackS;
-        packets.remove(ackOptional);
     }
 
 

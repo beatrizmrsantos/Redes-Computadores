@@ -236,7 +236,7 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
             raf.seek(BlockSize * (seqN - 1));
             byte[] data = new byte[BlockSize];
             int nbytes = raf.read(data);
-            return new FT21_DataPacket(seqN, data, nbytes, now);
+            return new FT21_DataPacket(seqN, data, nbytes,seqN ,now);
         } catch (Exception x) {
             throw new Error("Fatal Error: " + x.getMessage());
         }

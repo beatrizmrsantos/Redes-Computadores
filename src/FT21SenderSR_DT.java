@@ -52,7 +52,7 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
     private State state;
 
     public FT21SenderSR_DT() {
-        super(true, "FT21SenderSR");
+        super(true, "FT21SenderSR_DT");
     }
 
     public int initialise(int now, int node_id, Node nodeObj, String[] args) {

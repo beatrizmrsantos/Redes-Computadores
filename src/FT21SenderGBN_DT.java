@@ -1,6 +1,7 @@
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.util.LinkedList;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -13,8 +14,6 @@ import ft21.FT21_UploadPacket;
 
 public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
 
-    private static final int TIMEOUT = 1000;
-
     static int RECEIVER = 1;
 
     enum State {
@@ -22,6 +21,8 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     };
 
     static int DEFAULT_TIMEOUT = 1000;
+
+    private int timeout;
 
     private File file;
     private RandomAccessFile raf;
@@ -50,10 +51,12 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     //The key is the number of the package and the object is the time.
     private SortedMap<Integer, Integer> times;
 
+    private LinkedList<Integer> rtts;
+
     private State state;
 
     public FT21SenderGBN_DT() {
-        super(true, "FT21SenderGBN");
+        super(true, "FT21SenderGBN_DT");
     }
 
     public int initialise(int now, int node_id, Node nodeObj, String[] args) {
@@ -64,9 +67,11 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
         BlockSize = Integer.parseInt(args[1]);
         windowsize = Integer.parseInt(args[2]);
         times = new TreeMap<>();
+        rtts = new LinkedList<>();
         repeatedACK = false;
         negativeACK = -1;
         lastACKReceived = -1;
+        timeout= DEFAULT_TIMEOUT;
 
         state = State.BEGINNING;
         lastPacketSeqN = (int) Math.ceil(file.length() / (double) BlockSize);
@@ -82,7 +87,6 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
         boolean canSend = ((times.size()<windowsize) && (state != State.FINISHED) && (nextPacketSeqN<=lastPacketSeqN));
 
         receivedNegativeACK();
-
 
         sendFirst(now);
 
@@ -154,10 +158,10 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
     //checks if the first package, that was sent and didn't receive yet its ACK, has past the timeout value.
     //By comparing the time now with the time at it was sent
     private boolean timer(int now){
-        boolean timeout=false;
+        boolean hastimeout=false;
         if(!times.isEmpty()) {
             int first = times.firstKey();
-            if ((now - times.get(first)) > TIMEOUT) {
+            if ((now - times.get(first)) > timeout) {
                 if(nextPacketSeqN== lastPacketSeqN+1){
                     lastSent =false;
                 }
@@ -166,10 +170,10 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
                 }
                 nextPacketSeqN = lastACKReceived + 1;
                 times.clear();
-                timeout=true;
+                hastimeout=true;
             }
         }
-        return timeout;
+        return hastimeout;
     }
 
     // sends the package and adds the time it was sent to the map of packages that didn't receive their ack
@@ -203,6 +207,7 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
             }else {
                 lastACKReceived = ack.cSeqN;
                 if(!times.isEmpty()){
+                    calculateRTT(now,times.get(ack.cSeqN));
                     deleteAckReceived();
                 }
             }
@@ -216,6 +221,16 @@ public class FT21SenderGBN_DT extends FT21AbstractSenderApplication {
                 state = State.FINISHED;
             }
         }
+
+    }
+
+    private void calculateRTT(int now,int time){
+        rtts.add(now - time);
+        int sum = 0;
+        for(int i = 0; i< rtts.size();i++){
+            sum+= rtts.get(i);
+        }
+        timeout = sum / rtts.size();
 
     }
 

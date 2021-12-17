@@ -1,15 +1,20 @@
+
+//responsible for the state of the packet
 public class WindowDataState {
 
+    //time of the packet when sent
     private int time;
-    private boolean sent;
+    //if the packet was received this variable becomes true
+    private boolean ackReceived;
 
     public WindowDataState(int time) {
         this.time = time;
-        this.sent = false;
+        this.ackReceived = false;
     }
 
+    //when the sender gets the ack the corresponding packet number changes his state to received
     public void received() {
-        this.sent = true;
+        this.ackReceived = true;
     }
 
     public int getTime() {
@@ -17,7 +22,7 @@ public class WindowDataState {
     }
 
     public boolean getState() {
-        return sent;
+        return ackReceived;
     }
 
     public void setTime(int time) {

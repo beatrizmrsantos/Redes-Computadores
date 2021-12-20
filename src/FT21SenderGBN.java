@@ -93,7 +93,6 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
             }
         }
 
-
     }
 
     // sends the first package (Upload)
@@ -135,8 +134,9 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
 
     }
 
-    //checks if the first package, that was sent and didn't receive yet its ACK, has past the timeout value.
-    //By comparing the time now with the time at it was sent
+    /*checks if the first package, that was sent and didn't receive yet its ACK, has past the timeout value
+        by comparing the time now with the time at it was sent
+     */
     private boolean timer(int now){
         boolean timeout=false;
         if(!times.isEmpty()) {
@@ -176,7 +176,6 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
 
     // receives the ack from the receiver .
     //If the ack is the same as the last it signals so that a package was lost.
-    //Also, it can identify if the ack receives was negative
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
         if(lastACKReceived == ack.cSeqN){
@@ -188,7 +187,6 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
                 deleteAckReceived();
             }
         }
-
 
         //if the ack received is the fin then state changes to finishing
         if(ack.cSeqN == lastPacketSeqN + 1){

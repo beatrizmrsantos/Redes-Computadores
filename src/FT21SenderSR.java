@@ -152,8 +152,9 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
         }
     }
 
-    //checks if the first package (that was sent and didn't receive yet its ACK) has past the timeout value.
-    //by comparing the time now with the time at it was sent
+    /*checks if the first package (that was sent and didn't receive yet its ACK) has past the timeout value
+        by comparing the time now with the time at it was sent
+     */
     private boolean timer(int now){
         boolean hasTimeOut= false;
 
@@ -165,6 +166,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             while (it.hasNext()&& !hasTimeOut) {
                 int key = it.next();
                 WindowDataState p = packets.get(key);
+
                 if ((now - p.getTime()) > TIMEOUT && !p.getState()) {
                     if (nextPacketSeqN == lastPacketSeqN + 1) {
                         lastSent = false;
@@ -195,10 +197,9 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             case FINISHED:
         }
 
-
-        if(packets.get(nextPacketSeqN)==null) {
-            if(lastPacketSent<nextPacketSeqN){
-                lastPacketSent=nextPacketSeqN;
+        if(packets.get(nextPacketSeqN) == null) {
+            if(lastPacketSent < nextPacketSeqN){
+                lastPacketSent = nextPacketSeqN;
             }
             packets.put(nextPacketSeqN, new WindowDataState(now));
         }else{
@@ -208,26 +209,20 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
     }
 
 
-    // receives the ack from the receiver.
-    //If the ack is the same as the last it signals so that a package was lost.
-    //Also, it can identify if the ack receives was negative
+    //Receives the ack from the receiver.
+    //it can identify if the ack receives was outside the receiver window or if a package was lost.
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
         deleteAckReceived(ack.cSeqN);
+        if(lastACKReceived < ack.cSeqN) lastACKReceived = ack.cSeqN;
 
         if(ack.optional_dataSEQ > ack.cSeqN) {
             if (ack.outsideWindow) {
                 negativeACK = ack.optional_dataSEQ;
             } else {
                 packets.get(ack.optional_dataSEQ).received();
-                update(ack.cSeqN);
             }
-        }else{
-            update(ack.cSeqN);
         }
-
-
-
 
         //if the ack received is the fin then state changes to finishing
         if(ack.cSeqN == lastPacketSeqN + 1){
@@ -238,12 +233,6 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
             }
         }
 
-    }
-
-    //update the last ack receive if is superior to the one on the variable.
-    //update the map of packets waiting to receive their ack
-    private void update(int ackS){
-        if(lastACKReceived <= ackS) lastACKReceived = ackS;
     }
 
 

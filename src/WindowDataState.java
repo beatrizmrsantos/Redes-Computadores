@@ -12,7 +12,7 @@ public class WindowDataState {
         this.ackReceived = false;
     }
 
-    //when the sender gets the ack the corresponding packet number changes his state to received
+    //when the sender gets the ack of the corresponding packet number the method changes his state to received
     public void received() {
         this.ackReceived = true;
     }

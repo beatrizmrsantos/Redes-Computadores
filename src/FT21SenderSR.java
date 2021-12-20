@@ -210,6 +210,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
 
 
     //Receives the ack from the receiver.
+    //Updates the last ack received.
     //it can identify if the ack receives was outside the receiver window or if a package was lost.
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {

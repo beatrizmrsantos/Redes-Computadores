@@ -220,25 +220,23 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
 
 
     // receives the ack from the receiver.
+    //Updates the last ack received.
     //If the ack is the same as the last it signals so that a package was lost.
     //Also, it can identify if the ack receives was negative
     @Override
     public void on_receive_ack(int now, int client, FT21_AckPacket ack) {
         deleteAckReceived(ack.cSeqN);
         calculateRTT(now,ack.optional_dataTime);
+
+        if(lastACKReceived < ack.cSeqN) lastACKReceived = ack.cSeqN;
+
         if(ack.optional_dataSEQ > ack.cSeqN) {
             if (ack.outsideWindow) {
                 negativeACK = ack.optional_dataSEQ;
             } else {
                 packets.get(ack.optional_dataSEQ).received();
-                update(ack.cSeqN);
             }
-        }else{
-            update(ack.cSeqN);
         }
-
-
-
 
         //if the ack received is the fin then state changes to finishing
         if(ack.cSeqN == lastPacketSeqN + 1){
@@ -252,21 +250,14 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
     }
 
     //calculates the average RTT of the packages already received with some margin
-    private void calculateRTT(int now,int time){
+    private void calculateRTT(int now,int time) {
         int rtt = (now - time);
         sumRtt += rtt;
         countRtt++;
         int average = sumRtt / countRtt;
-        timeout = average + (average/2);
+        timeout = average + (average / 2);
 
     }
-
-    //update the last ack receive if is superior to the one on the variable.
-    //update the map of packets waiting to receive their ack
-    private void update(int ackS){
-        if(lastACKReceived <= ackS) lastACKReceived = ackS;
-    }
-
 
     //deletes from the map the key with the same value as the ACK and all packets before it
     private void deleteAckReceived(int n){

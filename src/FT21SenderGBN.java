@@ -151,6 +151,7 @@ public class FT21SenderGBN extends FT21AbstractSenderApplication {
                 nextPacketSeqN = lastACKReceived + 1;
                 times.clear();
                 timeout=true;
+                super.on_timeout(now);
             }
         }
         return timeout;

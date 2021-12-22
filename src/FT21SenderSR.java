@@ -176,6 +176,7 @@ public class FT21SenderSR extends FT21AbstractSenderApplication {
                     }
                     nextPacketSeqN = key;
                     hasTimeOut = true;
+                    super.on_timeout(now);
                 }
             }
         }

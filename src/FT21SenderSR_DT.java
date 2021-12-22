@@ -186,6 +186,7 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
                     }
                     nextPacketSeqN = key;
                     hasTimeOut = true;
+                    super.on_timeout(now);
                 }
             }
         }
@@ -252,10 +253,12 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
     //calculates the average RTT of the packages already received with some margin
     private void calculateRTT(int now,int time) {
         int rtt = (now - time);
+        super.tallyRTT(rtt);
         sumRtt += rtt;
         countRtt++;
         int average = sumRtt / countRtt;
         timeout = average + (average / 2);
+        super.tallyTimeout(timeout);
 
     }
 

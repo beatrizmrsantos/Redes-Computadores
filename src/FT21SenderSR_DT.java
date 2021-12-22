@@ -257,7 +257,7 @@ public class FT21SenderSR_DT extends FT21AbstractSenderApplication {
         sumRtt += rtt;
         countRtt++;
         int average = sumRtt / countRtt;
-        timeout = average + (average / 2);
+        timeout = average + (average/2);
         super.tallyTimeout(timeout);
 
     }
